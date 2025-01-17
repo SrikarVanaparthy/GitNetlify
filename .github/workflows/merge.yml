@@ -83,10 +83,10 @@ jobs:
       # Step 4: Run Build Command (if build folder does not exist)
       - name: Run Build Command (if build folder does not exist)
         run: |
-          if [ ! -d "build" ]; then
+          if [ ! -d "dist" ]; then
             npm run build
           fi
  
       # Step 5: Sync to S3
       - name: Sync to S3
-        run: aws s3 sync ./build s3://srikar-aws --delete
+        run: aws s3 sync ./dist s3://srikar-aws --delete
