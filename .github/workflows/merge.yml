@@ -55,7 +55,7 @@ jobs:
         run: |
           git fetch origin
           git checkout prod
-          git merge dev --no-edit 
+          git merge dev --allow-unrelated-histories
           git push origin prod
 
   deploy:
