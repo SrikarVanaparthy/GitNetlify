@@ -58,6 +58,9 @@ jobs:
           git merge dev --allow-unrelated-histories
           git push origin prod
 
+      - name: Debugging Current Ref
+        run: echo "Current ref: $GITHUB_REF"
+
   deploy:
     name: Deploy React App to AWS
     runs-on: ubuntu-latest
