@@ -47,8 +47,8 @@ jobs:
           publish-dir: ./dist
           production-deploy: false  # Ensure this deploy is not to production
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_DEV_SITE_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_TEST_SITE_ID }}
           HOMEPAGE_URL: ${{ secrets.HOMEPAGE_URL }}  # Use the test homepage URL from secrets
   auto-merge-to-prod:
     name: Auto-Merge to Prod
@@ -100,6 +100,6 @@ jobs:
           publish-dir: ./dist
           production-deploy: true  # This deploys to production
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_PROD_SITE_ID }}
           HOMEPAGE_URL: ${{ secrets.PROD_HOMEPAGE_URL }}  # Use the prod homepage URL from secrets
