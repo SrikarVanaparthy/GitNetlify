@@ -83,7 +83,7 @@ jobs:
         run: |
           git fetch origin
           git checkout prod
-          git merge test --strategy-option theirs --allow-unrelated-histories --no-edit
+          git merge dev --strategy-option theirs --allow-unrelated-histories --no-edit
           git push origin prod
  
   deploy-to-netlify-prod:
