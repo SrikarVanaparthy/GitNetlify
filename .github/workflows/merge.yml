@@ -1,5 +1,5 @@
 name: Multi-Environment Deployment with Auto-Merge to Prod
- 
+
 on:
   push:
     branches:
@@ -8,7 +8,7 @@ on:
     branches:
       - prod
   workflow_dispatch:
- 
+
 permissions:
   contents: write
   id-token: write
@@ -42,7 +42,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: dist
-          path: dist  # Upload the build directory for later use
+          path: dist  # Ensure this is the correct directory that contains the build output
 
   auto-merge-to-prod:
     runs-on: ubuntu-latest
@@ -74,12 +74,12 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v3
         with:
-          name: dist  # Download the build directory artifact
+          name: dist  # Download the build directory artifact created earlier
 
       - name: Deploy to Netlify (Prod)
         uses: nwtgck/actions-netlify@v3
         with:
-          publish-dir: dist
+          publish-dir: ./dist  # Ensure the correct path to the build directory
           production-deploy: true
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
