@@ -46,8 +46,8 @@ jobs:
         run: npm run build --verbose
  
       # Step 6: List dist directory for debugging
-      - name: List dist directory
-        run: ls -alh /dist || echo "Dist directory not found"
+      - name: List files before build
+        run: ls -alh
  
       # Step 7: Deploy to Netlify (Test branch)
       - name: Deploy to Netlify (dev)
