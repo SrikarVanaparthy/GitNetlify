@@ -101,7 +101,7 @@ jobs:
       - name: Deploy to Netlify (Prod)
         uses: nwtgck/actions-netlify@v3
         with:
-          publish-dir: /dist
+          publish-dir: dist
           production-deploy: true  # This deploys to production
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
