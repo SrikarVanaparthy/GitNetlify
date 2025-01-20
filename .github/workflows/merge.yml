@@ -42,7 +42,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: dist
-          path: dist  # Ensure this is the correct directory that contains the build output
+          path: ./dist  # Ensure this is the correct directory that contains the build output
 
   auto-merge-to-prod:
     runs-on: ubuntu-latest
