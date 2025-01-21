@@ -1,4 +1,5 @@
-name: Multi-Environment Deployment with Auto-Merge to Prod
+name: Multi-Environment Deployment with Notifications
+
 on:
   push:
     branches:
@@ -7,9 +8,12 @@ on:
     branches:
       - prod
   workflow_dispatch:
+
 permissions:
   contents: write
   id-token: write
+  pull-requests: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -17,6 +21,7 @@ jobs:
       # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
+
       # Step 2: Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -24,82 +29,113 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: package-lock.json
+
       # Step 3: Install dependencies
       - name: Install dependencies
         run: npm ci
- 
-      # Step 4: Run tests (only for test branch)
+
+      # Step 4: Run tests (only for dev branch)
       - name: Run tests
         if: github.ref_name == 'dev'
         run: npm test
- 
+
       # Step 5: Build the app
       - name: Build the app
         run: npm run build --verbose
-      # Step 6: List dist directory for debugging
-      - name: List dist directory
-        run: ls -alh /build || echo "Dist directory not found"
-      # Step 7: Deploy to Netlify (Test branch)
-      - name: Deploy to Netlify (dev)
-        if: github.ref == 'refs/heads/dev'  # Deploy on test branch
-        uses: nwtgck/actions-netlify@v3
-        with:
-          publish-dir: ./dist
-          production-deploy: false  # Ensure this deploy is not to production
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_TEST_SITE_ID }}
-          HOMEPAGE_URL: ${{ secrets.HOMEPAGE_URL }}  # Use the test homepage URL from secrets
-  auto-merge-to-prod:
-    name: Auto-Merge to Prod
-    runs-on: ubuntu-latest
-    needs: build-and-deploy
-    if: success() && github.ref == 'refs/heads/dev'  # Trigger auto-merge only after test branch success
-    steps:
-      # Step 1: Checkout Code
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      # Step 2: Configure Git User
-      - name: Configure Git User
-        run: |
-          git config --global user.name "SrikarVanaparthy"
-          git config --global user.email "svanaparthy@anergroup.com"
-      # Step 3: Merge Test into Prod with Automatic Conflict Resolution
-      - name: Merge Test into Prod
-        run: |
-          git fetch origin
-          git checkout prod
-          git merge dev --strategy-option theirs --allow-unrelated-histories --no-edit
-          git push origin prod
-  deploy-to-netlify-prod:
-    name: Deploy to Netlify (Prod)
-    runs-on: ubuntu-latest
-    needs: auto-merge-to-prod
-    if: success()  # Deploy only after auto-merge to prod succeeds
-    steps:
-      # Step 1: Checkout Code
-      - name: Checkout Code
-        uses: actions/checkout@v3
-     
-      # Step 3: Install dependencies
-      - name: Install dependencies
-        run: npm ci
- 
-      # Step 5: Build the app
-      - name: Build the app
-        run: npm run build --verbose
- 
+
       # Step 6: List dist directory for debugging
       - name: List dist directory
         run: ls -alh /dist || echo "Dist directory not found"
- 
-      # Step 2: Deploy to Netlify (Prod)
+
+      # Step 7: Deploy to Netlify (dev branch)
+      - name: Deploy to Netlify (dev)
+        if: github.ref == 'refs/heads/dev'
+        uses: nwtgck/actions-netlify@v3
+        with:
+          publish-dir: ./dist
+          production-deploy: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_DEV_SITE_ID }}
+          HOMEPAGE_URL: ${{ secrets.HOMEPAGE_URL }}
+
+      # Step 8: Send email for dev deploy
+      - name: Send email for dev deploy
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.SMTP_USERNAME }}  # Your Gmail address
+          password: ${{ secrets.SMTP_PASSWORD }}  # App password
+          subject: "Code Deployed to Dev Environment"
+          body: "The latest code has been successfully deployed to the dev environment. Visit the site at ${{ secrets.HOMEPAGE_URL }}."
+          to: "srikarvanaparthy21@gmail.com"
+          from: "srikarvanaparthy@gmail.com"
+
+
+  create-pull-request:
+    name: Create Pull Request for Dev to Prod
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    if: startsWith(github.ref, 'refs/heads/dev')  # Trigger only on 'dev' branch
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Install GitHub CLI
+      - name: Install GitHub CLI
+        run: sudo apt-get install -y gh
+
+      # Step 3: Authenticate with GitHub CLI using Personal Access Token (PAT)
+      - name: Authenticate with GitHub CLI
+        run: echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
+
+      # Step 4: Create the Pull Request
+      - name: Create Pull Request
+        run: gh pr create --base prod --head dev --title "Merge Dev into Prod" --body "This PR merges changes from the dev branch to the prod branch."
+
+  deploy-to-netlify-prod:
+    name: Deploy to Netlify (Prod)
+    runs-on: ubuntu-latest
+    needs: create-pull-request  # This ensures the deploy happens after the PR creation
+    steps:
+      # Step 1: Checkout Code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 3: Build the app
+      - name: Build the app
+        run: npm run build --verbose
+
+      # Step 4: List dist directory for debugging
+      - name: List dist directory
+        run: ls -alh /build || echo "Dist directory not found"
+
+      # Step 5: Deploy to Netlify (prod branch)
       - name: Deploy to Netlify (Prod)
         uses: nwtgck/actions-netlify@v3
         with:
           publish-dir: ./dist
-          production-deploy: true  # This deploys to production
+          production-deploy: true
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_PROD_SITE_ID }}
-          HOMEPAGE_URL: ${{ secrets.PROD_HOMEPAGE_URL }}  # Use the prod homepage URL from secrets
+          HOMEPAGE_URL: ${{ secrets.PROD_HOMEPAGE_URL }}
+
+      # Step 8: Send email for prod deploy
+      - name: Send email for prod deploy
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.SMTP_USERNAME }}  # Your Gmail address
+          password: ${{ secrets.SMTP_PASSWORD }}  # App password
+          subject: "Code Deployed to Prod Environment"
+          body: "The latest code has been successfully deployed to the prod environment. Visit the site at ${{ secrets.PROD_HOMEPAGE_URL }}."
+          to: "srikarvanaparthy21@gmail.com"
+          from: "srikarvanaparthy@gmail.com"
