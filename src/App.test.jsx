@@ -12,7 +12,7 @@ test('renders To-Do list input', () => {
 test('adds a task to the list', () => {
   render(<App />);
   const inputElement = screen.getByPlaceholderText(/enter a task/i);
-  const addButton = screen.getByText(/add new task/i);
+  const addButton = screen.getByText(/add task/i);
   fireEvent.change(inputElement, { target: { value: 'Test task' } });
   fireEvent.click(addButton);
   expect(screen.getByText('Test task')).toBeInTheDocument();
