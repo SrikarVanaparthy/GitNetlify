@@ -93,6 +93,8 @@ jobs:
       # Step 4: Create the Pull Request
       - name: Create Pull Request
         run: gh pr create --base prod --head dev --title "Merge Dev into Prod" --body "This PR merges changes from the dev branch to the prod branch."
+        auto-merge: false
+        overwrite: true 
 
   deploy-to-prod:
     name: Deploy to Netlify (Prod)
