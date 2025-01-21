@@ -58,28 +58,22 @@ jobs:
     needs: build-and-deploy
     if: success() && github.ref == 'refs/heads/dev'
     steps:
+      # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Step 2: Create Pull Request
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
+        uses: diillson/auto-pull-request@v1.0.1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: prod
-          head: dev
-          title: "Merge Dev into Prod"
-          body: |
-            Automated pull request to merge changes from `dev` to `prod`.
-            Please review and approve the changes for production deployment.
-          labels: "automated"
-          draft: false
+          destination_branch: "prod"
 
   deploy-to-netlify-prod:
     name: Deploy to Netlify (Prod)
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged == true && github.base_ref == 'prod'
     steps:
-      # Step 1: Checkout Code
+      # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
