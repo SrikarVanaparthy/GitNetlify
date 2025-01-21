@@ -106,15 +106,15 @@ jobs:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_PROD_SITE_ID }}
           HOMEPAGE_URL: ${{ secrets.PROD_HOMEPAGE_URL }}
 
-      # Step 6: Send email notification for prod deployment
-      - name: Send email notification for prod deployment
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.yourmailserver.com
-          server_port: 587
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          to: recipient@example.com
-          from: sender@example.com
-          subject: "Deployment to Prod Completed"
-          body: "The deployment to the Prod environment is complete."
+      # # Step 6: Send email notification for prod deployment
+      # - name: Send email notification for prod deployment
+      #   uses: dawidd6/action-send-mail@v3
+      #   with:
+      #     server_address: smtp.yourmailserver.com
+      #     server_port: 587
+      #     username: ${{ secrets.MAIL_USERNAME }}
+      #     password: ${{ secrets.MAIL_PASSWORD }}
+      #     to: recipient@example.com
+      #     from: sender@example.com
+      #     subject: "Deployment to Prod Completed"
+      #     body: "The deployment to the Prod environment is complete."
