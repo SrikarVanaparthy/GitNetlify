@@ -44,14 +44,14 @@ jobs:
  
       # Step 6: List dist directory for debugging
       - name: List dist directory
-        run: ls -alh /build || echo "Dist directory not found"
+        run: ls -alh /dist || echo "Dist directory not found"
  
       # Step 7: Deploy to Netlify (dev branch)
       - name: Deploy to Netlify (dev)
         if: github.ref == 'refs/heads/dev'
         uses: nwtgck/actions-netlify@v3
         with:
-          publish-dir: ./build
+          publish-dir: ./dist
           production-deploy: false
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
@@ -89,12 +89,14 @@ jobs:
           base: prod
           title: "Pull Request: Merge Dev into Prod"
           body: "This pull request is for merging the changes from the dev branch to the prod branch."
+          auto-merge: false  # Ensure the pull request is not merged automatically
+          
+
  
   deploy-to-netlify-prod:
     name: Deploy to Netlify (Prod)
     runs-on: ubuntu-latest
     needs: create-pull-request  # This ensures the deploy happens after the PR creation
-    if: github.ref == 'refs/heads/prod' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     steps:
       # Step 1: Checkout Code
       - name: Checkout Code
@@ -116,7 +118,7 @@ jobs:
       - name: Deploy to Netlify (Prod)
         uses: nwtgck/actions-netlify@v3
         with:
-          publish-dir: ./build
+          publish-dir: ./dist
           production-deploy: true
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
