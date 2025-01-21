@@ -7,8 +7,6 @@ on:
 permissions:
   contents: write
   id-token: write
-  pull-requests: write
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -60,22 +58,28 @@ jobs:
     needs: build-and-deploy
     if: success() && github.ref == 'refs/heads/dev'
     steps:
-      # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Create Pull Request
       - name: Create Pull Request
-        uses: diillson/auto-pull-request@v1.0.1
+        uses: peter-evans/create-pull-request@v5
         with:
-          destination_branch: "prod"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: prod  # The target branch for the PR
+          title: "Automated PR: dev to prod"
+          body: |
+            This PR merges the changes from `dev` into `prod` for deployment purposes.
+          labels: "automated"
+          draft: false
+      
+          
 
   deploy-to-netlify-prod:
     name: Deploy to Netlify (Prod)
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged == true && github.base_ref == 'prod'
     steps:
-      # Step 1: Checkout repository
+      # Step 1: Checkout Code
       - name: Checkout repository
         uses: actions/checkout@v4
 
