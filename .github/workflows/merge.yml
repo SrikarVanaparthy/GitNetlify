@@ -77,7 +77,7 @@ jobs:
   deploy-to-netlify-prod:
     name: Deploy to Netlify (Prod)
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && github.base_ref == 'prod'
+   
     steps:
       # Step 1: Checkout Code
       - name: Checkout repository
