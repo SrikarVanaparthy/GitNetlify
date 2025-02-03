@@ -17,7 +17,7 @@ pipeline {
                     echo "🔄 Checking out code from GitHub..."
                     sh '''
                         rm -rf Netlify || true
-                        git clone -b main https://github.com/Navateja-gogula/Netlify.git Netlify || { echo "❌ Git clone failed"; exit 1; }
+                        git clone -b dev https://github.com/SrikarVanaparthy/GitNetlify.git Netlify || { echo "❌ Git clone failed"; exit 1; }
                         echo "✅ Code checkout complete."
                     '''
                 }
