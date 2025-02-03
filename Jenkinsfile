@@ -81,7 +81,7 @@ pipeline {
 
                         # Final check before deploying
                         if [ -d "dist" ]; then
-                          npx netlify deploy --dir=dist --dev --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID || { echo "❌ Netlify deployment failed"; exit 1; }
+                          npx netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID || { echo "❌ Netlify deployment failed"; exit 1; }
                         else
                           echo "❌ Deployment failed because 'dist' directory was not found."
                           exit 1
