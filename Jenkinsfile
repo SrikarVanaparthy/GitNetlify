@@ -85,7 +85,7 @@ pipeline {
                     echo "🚀 Deploying to Netlify (Test)..."
                     sh '''
                         npm install -g netlify-cli || { echo "❌ Failed to install Netlify CLI"; exit 1; }
-                        npx netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_TEST_SITE_ID --homepage_url=$HOMEPAGE_URL || { echo "❌ Netlify deployment failed"; exit 1; }
+                        npx netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_TEST_SITE_ID || { echo "❌ Netlify deployment failed"; exit 1; }
                     '''
                 }
             }
@@ -117,7 +117,7 @@ pipeline {
                     echo "🚀 Deploying to Netlify (Prod)..."
                     sh '''
                         npm install -g netlify-cli || { echo "❌ Failed to install Netlify CLI"; exit 1; }
-                        npx netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_PROD_SITE_ID --homepage_url=$PROD_HOMEPAGE_URL || { echo "❌ Netlify deployment failed"; exit 1; }
+                        npx netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_PROD_SITE_ID || { echo "❌ Netlify deployment failed"; exit 1; }
                     '''
                 }
             }
