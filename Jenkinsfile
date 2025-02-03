@@ -1,15 +1,15 @@
 pipeline {
     agent any
- 
+
     tools {
         nodejs "NodeJS_18" // Ensure Node.js 18 is installed via Jenkins Global Tool Configuration
     }
- 
+
     environment {
         NETLIFY_AUTH_TOKEN = credentials('netlify_token')
         NETLIFY_SITE_ID = 'd8f2c4af-86d6-49c2-a961-9da6ef14856a' // Your Netlify Site ID
     }
- 
+
     stages {
         stage('Checkout Code') {
             steps {
@@ -23,13 +23,12 @@ pipeline {
                 }
             }
         }
- 
+
         stage('Verify Node.js & npm') {
             steps {
                 script {
                     echo "🔍 Checking Node.js and npm versions..."
                     sh '''
-                        echo "Current PATH: $PATH"
                         which node || { echo "❌ Node.js not found! Install it on Jenkins."; exit 1; }
                         which npm || { echo "❌ npm not found! Install it on Jenkins."; exit 1; }
                         echo "✅ Node.js Version: $(node -v)"
@@ -38,7 +37,7 @@ pipeline {
                 }
             }
         }
- 
+
         stage('Clean & Install Dependencies') {
             steps {
                 script {
@@ -52,7 +51,7 @@ pipeline {
                 }
             }
         }
- 
+
         stage('Build React App') {
             steps {
                 script {
@@ -60,11 +59,18 @@ pipeline {
                         echo "⚙️ Building the React application..."
                         cd Netlify
                         npm run build || { echo "❌ Build failed"; exit 1; }
+
+                        # Verify if dist directory exists after build
+                        if [ ! -d "dist" ]; then
+                          echo "❌ Build completed but 'dist' directory is missing. Check build configuration.";
+                          exit 1;
+                        fi
+                        echo "✅ Build successful and 'dist' directory exists."
                     '''
                 }
             }
         }
- 
+
         stage('Deploy to Netlify') {
             steps {
                 script {
@@ -72,13 +78,20 @@ pipeline {
                         echo "🚀 Deploying to Netlify..."
                         npm install -g netlify-cli || { echo "❌ Failed to install Netlify CLI"; exit 1; }
                         cd Netlify
-                        npx netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID || { echo "❌ Netlify deployment failed"; exit 1; }
+
+                        # Final check before deploying
+                        if [ -d "dist" ]; then
+                          npx netlify deploy --dir=dist --dev --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID || { echo "❌ Netlify deployment failed"; exit 1; }
+                        else
+                          echo "❌ Deployment failed because 'dist' directory was not found."
+                          exit 1
+                        fi
                     '''
                 }
             }
         }
     }
- 
+
     post {
         success {
             echo "🎉 ✅ Deployment successful!"
