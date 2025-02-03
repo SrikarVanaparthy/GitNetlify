@@ -6,8 +6,11 @@ pipeline {
     }
 
     environment {
-        NETLIFY_AUTH_TOKEN = credentials('netlify_token')
-        NETLIFY_SITE_ID = 'd8f2c4af-86d6-49c2-a961-9da6ef14856a' // Your Netlify Site ID
+        NETLIFY_AUTH_TOKEN = credentials('netlify_token1')
+        NETLIFY_TEST_SITE_ID = credentials('netlify-test-site-id') // Your Netlify Test Site ID
+        NETLIFY_PROD_SITE_ID = credentials('netlify-prod-site-id') // Your Netlify Prod Site ID
+        HOMEPAGE_URL = credentials('homepage-url')
+        PROD_HOMEPAGE_URL = credentials('prod-homepage-url')
     }
 
     stages {
@@ -15,11 +18,7 @@ pipeline {
             steps {
                 script {
                     echo "🔄 Checking out code from GitHub..."
-                    sh '''
-                        rm -rf Netlify || true
-                        git clone -b dev https://github.com/SrikarVanaparthy/GitNetlify.git Netlify || { echo "❌ Git clone failed"; exit 1; }
-                        echo "✅ Code checkout complete."
-                    '''
+                    checkout scm
                 }
             }
         }
@@ -38,16 +37,23 @@ pipeline {
             }
         }
 
-        stage('Clean & Install Dependencies') {
+        stage('Install Dependencies') {
             steps {
                 script {
-                    sh '''
-                        echo "🧹 Cleaning old dependencies..."
-                        cd Netlify
-                        rm -rf node_modules package-lock.json
-                        echo "📦 Installing dependencies..."
-                        npm install || { echo "❌ Failed to install dependencies"; exit 1; }
-                    '''
+                    echo "📦 Installing dependencies..."
+                    sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Run Tests (dev branch only)') {
+            when {
+                branch 'dev'
+            }
+            steps {
+                script {
+                    echo "🧪 Running tests for dev branch..."
+                    sh 'npm test'
                 }
             }
         }
@@ -55,15 +61,14 @@ pipeline {
         stage('Build React App') {
             steps {
                 script {
-                    sh '''
-                        echo "⚙️ Building the React application..."
-                        cd Netlify
-                        npm run build || { echo "❌ Build failed"; exit 1; }
+                    echo "⚙️ Building the React application..."
+                    sh 'npm run build --verbose'
 
-                        # Verify if dist directory exists after build
+                    // Verify if dist directory exists after build
+                    sh '''
                         if [ ! -d "dist" ]; then
-                          echo "❌ Build completed but 'dist' directory is missing. Check build configuration.";
-                          exit 1;
+                          echo "❌ Build completed but 'dist' directory is missing. Check build configuration."
+                          exit 1
                         fi
                         echo "✅ Build successful and 'dist' directory exists."
                     '''
@@ -71,21 +76,48 @@ pipeline {
             }
         }
 
-        stage('Deploy to Netlify') {
+        stage('Deploy to Netlify (dev)') {
+            when {
+                branch 'dev'
+            }
             steps {
                 script {
+                    echo "🚀 Deploying to Netlify (Test)..."
                     sh '''
-                        echo "🚀 Deploying to Netlify..."
                         npm install -g netlify-cli || { echo "❌ Failed to install Netlify CLI"; exit 1; }
-                        cd Netlify
+                        npx netlify deploy --dir=dist --prod=false --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_TEST_SITE_ID --homepage_url=$HOMEPAGE_URL || { echo "❌ Netlify deployment failed"; exit 1; }
+                    '''
+                }
+            }
+        }
 
-                        # Final check before deploying
-                        if [ -d "dist" ]; then
-                          npx netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID || { echo "❌ Netlify deployment failed"; exit 1; }
-                        else
-                          echo "❌ Deployment failed because 'dist' directory was not found."
-                          exit 1
-                        fi
+        stage('Pull Request Merge to Prod') {
+            when {
+                expression { return env.CHANGE_ID != null }
+            }
+            steps {
+                script {
+                    echo "🔀 Merging pull request to Prod branch..."
+                    sh '''
+                        git fetch origin
+                        git checkout prod
+                        git merge --no-ff --no-edit
+                        git push origin prod
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to Netlify (Prod)') {
+            when {
+                branch 'prod'
+            }
+            steps {
+                script {
+                    echo "🚀 Deploying to Netlify (Prod)..."
+                    sh '''
+                        npm install -g netlify-cli || { echo "❌ Failed to install Netlify CLI"; exit 1; }
+                        npx netlify deploy --dir=dist --prod=true --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_PROD_SITE_ID --homepage_url=$PROD_HOMEPAGE_URL || { echo "❌ Netlify deployment failed"; exit 1; }
                     '''
                 }
             }
