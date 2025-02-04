@@ -89,8 +89,8 @@ pipeline {
                     echo "🚀 Deploying to Netlify (Test)..."
                     sh '''
                         cd Netlify # Ensure you're in the correct directory for deployment
-                        git checkout main
-                        git pull origin main
+                        git checkout dev
+                        git pull origin dev
                         # Install dependencies and build the project
                         npm install
                         npm run build  # This generates the dist directory (or build folder depending on configuration)
