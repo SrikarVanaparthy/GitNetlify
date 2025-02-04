@@ -75,13 +75,13 @@ pipeline {
                     echo "📌 Creating pull request for merging main into prod..."
                     sh '''
                         cd Netlify
-                        git checkout prod
+                        git checkout -b temp-branch
                         # Set GitHub credentials to authenticate
                         git config --global user.email "svanaparthy@anergroup.com"
                         git config --global user.name "SrikarVanaparthy"
                         # Update the origin URL with the GitHub token
                         git remote set-url origin https://$GITHUB_TOKEN@github.com/SrikarVanaparthy/GitNetlify.git
-                        git push origin prod
+                        git push origin temp--branch
  
                         PR_RESPONSE=$(curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
                             -H "Accept: application/vnd.github.v3+json" \
