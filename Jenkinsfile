@@ -75,10 +75,10 @@ pipeline {
                     echo "📌 Creating pull request for merging main into prod..."
                     sh '''
                         cd Netlify
-                        git checkout -b temp-merge-branch
+                        git checkout -b prod
                         # Set GitHub credentials to authenticate
-                        git config --global user.email "ngogula@anergroup.com"
-                        git config --global user.name "Navateja-gogula"
+                        git config --global user.email "svanaparthy@anergroup.com"
+                        git config --global user.name "SrikarVanaparthy"
                         # Update the origin URL with the GitHub token
                         git remote set-url origin https://$GITHUB_TOKEN@github.com/SrikarVanaparthy/GitNetlify.git
                         git push origin temp-merge-branch
@@ -87,10 +87,10 @@ pipeline {
                             -H "Accept: application/vnd.github.v3+json" \
 https://api.github.com/repos/SrikarVanaparthy/GitNetlify/pulls \
                             -d '{
-                                "title": "Merge main into prod",
-                                "head": "temp-merge-branch",
+                                "title": "Merge dev into prod",
+                                "head": "dev",
                                 "base": "prod",
-                                "body": "Auto-generated pull request for merging main into prod."
+                                "body": "Auto-generated pull request for merging dev into prod."
                             }')
  
                         echo "✅ Pull request created. Please review and merge manually."
@@ -106,20 +106,26 @@ https://api.github.com/repos/SrikarVanaparthy/GitNetlify/pulls \
                     echo "⏳ Waiting for the PR to be merged manually..."
                     sh '''
                         while true; do
-                            # Fetch the latest commits
+                            # Fetch the latest commits from the remote repository
                             git fetch origin
-                            # Get latest commit hashes
+
+                            # Get the latest commit hash from the prod branch
                             LATEST_COMMIT_HASH=$(git log origin/prod -1 --pretty=format:"%H")
-                            MERGED_COMMIT_HASH=$(git log origin/temp-merge-branch -1 --pretty=format:"%H")
+
+                            # Get the latest commit hash from the dev branch
+                            DEV_COMMIT_HASH=$(git log origin/dev -1 --pretty=format:"%H")
                             
+                            # Display the latest commit hashes for debugging
                             echo "🔍 Latest Commit on prod: $LATEST_COMMIT_HASH"
-                            echo "🔍 Latest Commit on temp-merge-branch: $MERGED_COMMIT_HASH"
+                            echo "🔍 Latest Commit on dev: $DEV_COMMIT_HASH"
                             
-                            # Proper comparison with spaces
-                            if [ "$LATEST_COMMIT_HASH" = "$MERGED_COMMIT_HASH" ]; then
-                                echo "✅ Commit from temp-merge-branch is merged into prod!"
+                            # Check if the latest dev commit is merged into prod
+                            if [ "$LATEST_COMMIT_HASH" = "$DEV_COMMIT_HASH" ]; then
+                                echo "✅ The latest commit from dev is merged into prod!"
                                 break
                             fi
+                            
+                            # If not merged yet, wait for 60 seconds and check again
                             echo "⏳ Waiting for PR merge..."
                             sleep 60
                         done
