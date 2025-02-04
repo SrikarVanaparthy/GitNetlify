@@ -20,8 +20,8 @@ pipeline {
                 script {
                     echo "🔄 Checking out code from GitHub..."
                     sh '''
-                        rm -rf GitAws || true
-                        git clone -b $MAIN_BRANCH $REPO_URL GitAws || { echo "❌ Git clone failed"; exit 1; }
+                        rm -rf GitNetlify || true
+                        git clone -b $MAIN_BRANCH $REPO_URL GitNetlify || { echo "❌ Git clone failed"; exit 1; }
                         echo "✅ Code checkout complete."
                     '''
                 }
@@ -33,8 +33,8 @@ pipeline {
                 script {
                     sh '''
                         echo "📁 Checking if Netlify exists..."
-                        ls -l GitAws || { echo "❌ Netlify repo not found!"; exit 1; }
-                        ls -l GitAws || { echo "❌ Netlify directory not found!"; exit 1; }
+                        ls -l GitNetlify || { echo "❌ Netlify repo not found!"; exit 1; }
+                        ls -l GitNetlify || { echo "❌ Netlify directory not found!"; exit 1; }
                         echo "✅ Directory structure verified."
                     '''
                 }
@@ -61,7 +61,7 @@ pipeline {
                 script {
                     sh '''
                         echo "🧹 Cleaning old dependencies..."
-                        cd GitAws 
+                        cd GitNetlify
                         rm -rf node_modules package-lock.json
                         echo "📦 Installing dependencies..."
                         npm install || { echo "❌ Failed to install dependencies"; exit 1; }
@@ -75,7 +75,7 @@ pipeline {
                 script {
                     sh '''
                         echo "🧪 Running test cases..."
-                        cd GitAws 
+                        cd GitNetlify 
                         npm test || { echo "❌ Tests failed"; exit 1; }
                         echo "✅ All tests passed!"
                     '''
@@ -88,7 +88,7 @@ pipeline {
                 script {
                     echo "🚀 Deploying to Netlify (Test)..."
                     sh '''
-                        cd GitAws # Ensure you're in the correct directory for deployment
+                        cd GitNetlify # Ensure you're in the correct directory for deployment
                         git checkout dev
                         git pull origin dev
                         # Install dependencies and build the project
@@ -112,7 +112,7 @@ pipeline {
                 script {
                     echo "📌 Creating pull request for merging test into prod..."
                     sh '''
-                        cd GitAws 
+                        cd GitNetlify 
                         git checkout prod
                         git config --global user.email "svanaparthy@anergroup.com"
                         git config --global user.name "SrikarVanaparthy"

@@ -19,8 +19,8 @@ pipeline {
                 script {
                     echo "🔄 Checking out production code from GitHub..."
                     sh '''
-                        rm -rf GitAws || true
-                        git clone -b $PROD_BRANCH $REPO_URL GitAws || { echo "❌ Git clone failed"; exit 1; }
+                        rm -rf GitNetlify || true
+                        git clone -b $PROD_BRANCH $REPO_URL  || { echo "❌ Git clone failed"; exit 1; }
                         echo "✅ Code checkout complete."
                     '''
                 }
@@ -32,8 +32,8 @@ pipeline {
                 script {
                     sh '''
                         echo "📁 Checking if Netlify exists..."
-                        ls -l GitAws || { echo "❌ Netlify repo not found!"; exit 1; }
-                        ls -l GitAws || { echo "❌ Netlify directory not found!"; exit 1; }
+                        ls -l GitNetlify || { echo "❌ Netlify repo not found!"; exit 1; }
+                        ls -l GitNetlify || { echo "❌ Netlify directory not found!"; exit 1; }
                         echo "✅ Directory structure verified."
                     '''
                 }
@@ -59,7 +59,7 @@ pipeline {
                 script {
                     sh '''
                         echo "📦 Installing dependencies..."
-                        cd GitAws 
+                        cd GitNetlify 
                         npm install || { echo "❌ Failed to install dependencies"; exit 1; }
                     '''
                 }
@@ -71,7 +71,7 @@ pipeline {
                 script {
                     sh '''
                         echo "⚙️ Building application..."
-                        cd GitAws 
+                        cd GitNetlify 
                         npm run build || { echo "❌ Build failed"; exit 1; }
                         echo "✅ Build successful."
                     '''
@@ -84,7 +84,7 @@ pipeline {
                 script {
                     echo "🚀 Deploying to Netlify Production..."
                     sh '''
-                        cd GitAws
+                        cd GitNetlify
  
                         # Install Netlify CLI
                         npm install -g netlify-cli
