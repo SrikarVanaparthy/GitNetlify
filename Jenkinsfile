@@ -75,7 +75,6 @@ pipeline {
                     echo "📌 Creating pull request for merging dev into prod..."
                     sh '''
                         cd Netlify
-                        git checkout -b temp-merge-branch
 
                         # Set GitHub credentials to authenticate
                         git config --global user.email "svanaparthy@anergroup.com"
@@ -83,7 +82,7 @@ pipeline {
 
                         # Update the origin URL with the GitHub token
                         git remote set-url origin https://$GITHUB_TOKEN@github.com/SrikarVanaparthy/GitNetlify.git
-                        git push origin temp-merge-branch
+                        git fetch origin
 
                         # Create Pull Request and capture response
                         PR_RESPONSE=$(curl -s -o response.json -w "%{http_code}" -X POST \
@@ -93,7 +92,7 @@ pipeline {
                             -d '{
                                 "title": "Merge dev into prod",
                                 "head": "dev",
-                                "base": "temp-merge-branch",
+                                "base": "prod",
                                 "body": "Auto-generated pull request for merging dev into prod."
                             }'
                         )
@@ -111,29 +110,28 @@ pipeline {
             }
         }
 
-
-
         stage('Wait for PR Merge') {
             steps {
                 script {
                     echo "⏳ Waiting for the PR to be merged manually..."
                     sh '''
+                        cd Netlify
                         while true; do
                             # Fetch the latest commits from the remote repository
                             git fetch origin
 
                             # Get the latest commit hash from the prod branch
-                            LATEST_COMMIT_HASH=$(git log origin/temp-merge-branch -1 --pretty=format:"%H")
+                            PROD_COMMIT_HASH=$(git log origin/prod -1 --pretty=format:"%H")
 
                             # Get the latest commit hash from the dev branch
                             DEV_COMMIT_HASH=$(git log origin/dev -1 --pretty=format:"%H")
                             
                             # Display the latest commit hashes for debugging
-                            echo "🔍 Latest Commit on prod: $LATEST_COMMIT_HASH"
+                            echo "🔍 Latest Commit on prod: $PROD_COMMIT_HASH"
                             echo "🔍 Latest Commit on dev: $DEV_COMMIT_HASH"
                             
                             # Check if the latest dev commit is merged into prod
-                            if [ "$LATEST_COMMIT_HASH" = "$DEV_COMMIT_HASH" ]; then
+                            if [ "$PROD_COMMIT_HASH" = "$DEV_COMMIT_HASH" ]; then
                                 echo "✅ The latest commit from dev is merged into prod!"
                                 break
                             fi
@@ -147,24 +145,19 @@ pipeline {
             }
         }
 
- 
-    
- 
         stage('Deploy to Netlify (prod branch)') {
             steps {
                 script {
-                     sh '''
+                    sh '''
                         echo "🚀 Deploying to Netlify..."
                         
                         # Ensure you're on the prod branch and have the latest code
+                        cd Netlify
                         git checkout prod
                         git pull origin prod
                         
                         # Install Netlify CLI globally
                         npm install -g netlify-cli
-                        
-                        # Navigate to the Netlify project directory
-                        cd Netlify
                         
                         # Install project dependencies
                         npm install
