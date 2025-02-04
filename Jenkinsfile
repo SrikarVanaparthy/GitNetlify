@@ -98,21 +98,25 @@ https://api.github.com/repos/SrikarVanaparthy/GitNetlify/pulls \
                 }
             }
         }
- 
+
+
         stage('Wait for PR Merge') {
             steps {
                 script {
                     echo "⏳ Waiting for the PR to be merged manually..."
                     sh '''
                         while true; do
-                            # Fetch the latest commit hashes
+                            # Fetch the latest commits
                             git fetch origin
-                            # Get the latest commit hash on prod branch
+                            # Get latest commit hashes
                             LATEST_COMMIT_HASH=$(git log origin/prod -1 --pretty=format:"%H")
-                            # Get the latest commit hash on temp-merge-branch
                             MERGED_COMMIT_HASH=$(git log origin/temp-merge-branch -1 --pretty=format:"%H")
-                            # Compare the commit hashes
-                            if [ "$LATEST_COMMIT_HASH" == "$MERGED_COMMIT_HASH" ]; then
+                            
+                            echo "🔍 Latest Commit on prod: $LATEST_COMMIT_HASH"
+                            echo "🔍 Latest Commit on temp-merge-branch: $MERGED_COMMIT_HASH"
+                            
+                            # Proper comparison with spaces
+                            if [ "$LATEST_COMMIT_HASH" = "$MERGED_COMMIT_HASH" ]; then
                                 echo "✅ Commit from temp-merge-branch is merged into prod!"
                                 break
                             fi
@@ -123,6 +127,9 @@ https://api.github.com/repos/SrikarVanaparthy/GitNetlify/pulls \
                 }
             }
         }
+
+ 
+    
  
         stage('Deploy to Netlify (prod branch)') {
             steps {
