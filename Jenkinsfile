@@ -75,7 +75,7 @@ pipeline {
                     echo "📌 Creating pull request for merging main into prod..."
                     sh '''
                         cd Netlify
-                        git checkout -b prod
+                        git checkout prod
                         # Set GitHub credentials to authenticate
                         git config --global user.email "svanaparthy@anergroup.com"
                         git config --global user.name "SrikarVanaparthy"
