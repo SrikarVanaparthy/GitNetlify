@@ -75,13 +75,13 @@ pipeline {
                     echo "📌 Creating pull request for merging main into prod..."
                     sh '''
                         cd Netlify
-                        git checkout -b temp-branch
+                        git checkout -b temp-merge-branch
                         # Set GitHub credentials to authenticate
                         git config --global user.email "svanaparthy@anergroup.com"
                         git config --global user.name "SrikarVanaparthy"
                         # Update the origin URL with the GitHub token
                         git remote set-url origin https://$GITHUB_TOKEN@github.com/SrikarVanaparthy/GitNetlify.git
-                        git push origin temp--branch
+                        git push origin temp-merge-branch
  
                         PR_RESPONSE=$(curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
                             -H "Accept: application/vnd.github.v3+json" \
@@ -89,7 +89,7 @@ https://api.github.com/repos/SrikarVanaparthy/GitNetlify/pulls \
                             -d '{
                                 "title": "Merge dev into prod",
                                 "head": "dev",
-                                "base": "prod",
+                                "base": "temp-merge-branch",
                                 "body": "Auto-generated pull request for merging dev into prod."
                             }')
  
@@ -110,7 +110,7 @@ https://api.github.com/repos/SrikarVanaparthy/GitNetlify/pulls \
                             git fetch origin
 
                             # Get the latest commit hash from the prod branch
-                            LATEST_COMMIT_HASH=$(git log origin/prod -1 --pretty=format:"%H")
+                            LATEST_COMMIT_HASH=$(git log origin/temp-merge-branch -1 --pretty=format:"%H")
 
                             # Get the latest commit hash from the dev branch
                             DEV_COMMIT_HASH=$(git log origin/dev -1 --pretty=format:"%H")
