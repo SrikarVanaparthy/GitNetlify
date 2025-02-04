@@ -61,7 +61,7 @@ pipeline {
                 script {
                     sh '''
                         echo "🧹 Cleaning old dependencies..."
-                        cd Netlify 
+                        cd GitNetlify 
                         rm -rf node_modules package-lock.json
                         echo "📦 Installing dependencies..."
                         npm install || { echo "❌ Failed to install dependencies"; exit 1; }
