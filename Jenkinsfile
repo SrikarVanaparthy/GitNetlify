@@ -140,13 +140,28 @@ https://api.github.com/repos/SrikarVanaparthy/GitNetlify/pulls \
         stage('Deploy to Netlify (prod branch)') {
             steps {
                 script {
-                    sh '''
+                     sh '''
                         echo "🚀 Deploying to Netlify..."
+                        
+                        # Ensure you're on the prod branch and have the latest code
                         git checkout prod
                         git pull origin prod
+                        
+                        # Install Netlify CLI globally
                         npm install -g netlify-cli
+                        
+                        # Navigate to the Netlify project directory
                         cd Netlify
+                        
+                        # Install project dependencies
+                        npm install
+                        
+                        # Build the project to generate the 'dist' folder
+                        npm run build
+                        
+                        # Deploy to Netlify
                         npx netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID || { echo "❌ Netlify deployment failed"; exit 1; }
+                        
                         echo "✅ Deployment successful!"
                     '''
                 }
