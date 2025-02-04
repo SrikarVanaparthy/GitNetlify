@@ -7,7 +7,7 @@ pipeline {
  
     environment {
         NETLIFY_AUTH_TOKEN = credentials('netlify_token')
-        NETLIFY_SITE_ID = 'd8f2c4af-86d6-49c2-a961-9da6ef14856a'
+        NETLIFY_SITE_ID = '5b847326-a880-4b91-ad33-dcc3266cc5bc'
         GITHUB_TOKEN = credentials('github_token') // Store GitHub token in Jenkins credentials
         REPO_URL = "https://github.com/SrikarVanaparthy/GitNetlify.git"
         MAIN_BRANCH = "dev"
