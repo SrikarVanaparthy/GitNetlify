@@ -1,28 +1,33 @@
 pipeline {
     agent any
-
+ 
     tools {
-        nodejs "NodeJS_18" // Ensure Node.js 18 is installed via Jenkins Global Tool Configuration
+        nodejs "NodeJS_18"
     }
-
+ 
     environment {
-        NETLIFY_AUTH_TOKEN = credentials('netlify_token1')
-        NETLIFY_TEST_SITE_ID = credentials('netlify-test-site-id') // Your Netlify Test Site ID
-        NETLIFY_PROD_SITE_ID = credentials('netlify-prod-site-id') // Your Netlify Prod Site ID
-        HOMEPAGE_URL = credentials('homepage-url')
-        PROD_HOMEPAGE_URL = credentials('prod-homepage-url')
+        NETLIFY_AUTH_TOKEN = credentials('netlify_token')
+        NETLIFY_SITE_ID = 'd8f2c4af-86d6-49c2-a961-9da6ef14856a'
+        GITHUB_TOKEN = credentials('github_token') // Store GitHub token in Jenkins credentials
+        REPO_URL = "https://github.com/SrikarVanaparthy/GitNetlify.git"
+        MAIN_BRANCH = "dev"
+        PROD_BRANCH = "prod"
     }
-
+ 
     stages {
         stage('Checkout Code') {
             steps {
                 script {
                     echo "🔄 Checking out code from GitHub..."
-                    checkout scm
+                    sh '''
+                        rm -rf Netlify || true
+                        git clone -b $MAIN_BRANCH $REPO_URL Netlify || { echo "❌ Git clone failed"; exit 1; }
+                        echo "✅ Code checkout complete."
+                    '''
                 }
             }
         }
-
+ 
         stage('Verify Node.js & npm') {
             steps {
                 script {
@@ -36,94 +41,106 @@ pipeline {
                 }
             }
         }
-
-        stage('Install Dependencies') {
+ 
+        stage('Clean & Install Dependencies') {
             steps {
                 script {
-                    echo "📦 Installing dependencies..."
-                    sh 'npm ci'
-                }
-            }
-        }
-
-        stage('Run Tests (dev branch only)') {
-            when {
-                branch 'dev'
-            }
-            steps {
-                script {
-                    echo "🧪 Running tests for dev branch..."
-                    sh 'npm test'
-                }
-            }
-        }
-
-        stage('Build React App') {
-            steps {
-                script {
-                    echo "⚙️ Building the React application..."
-                    sh 'npm run build --verbose'
-
-                    // Verify if dist directory exists after build
                     sh '''
-                        if [ ! -d "dist" ]; then
-                          echo "❌ Build completed but 'dist' directory is missing. Check build configuration."
-                          exit 1
-                        fi
-                        echo "✅ Build successful and 'dist' directory exists."
+                        echo "🧹 Cleaning old dependencies..."
+                        cd Netlify
+                        rm -rf node_modules package-lock.json
+                        echo "📦 Installing dependencies..."
+                        npm install || { echo "❌ Failed to install dependencies"; exit 1; }
                     '''
                 }
             }
         }
-
-        stage('Deploy to Netlify (dev)') {
-            when {
-                branch 'dev'
-            }
+ 
+        stage('Run Tests') {
             steps {
                 script {
-                    echo "🚀 Deploying to Netlify (Test)..."
                     sh '''
-                        npm install -g netlify-cli || { echo "❌ Failed to install Netlify CLI"; exit 1; }
-                        npx netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_TEST_SITE_ID || { echo "❌ Netlify deployment failed"; exit 1; }
+                        echo "🧪 Running test cases..."
+                        cd Netlify
+                        npm test || { echo "❌ Tests failed"; exit 1; }
+                        echo "✅ All tests passed!"
                     '''
                 }
             }
         }
-
-        stage('Pull Request Merge to Prod') {
-            when {
-                expression { return env.CHANGE_ID != null }
-            }
+ 
+        stage('Create Pull Request for Production Merge') {
             steps {
                 script {
-                    echo "🔀 Merging pull request to Prod branch..."
+                    echo "📌 Creating pull request for merging main into prod..."
                     sh '''
-                        git fetch origin
+                        cd Netlify
+                        git checkout -b temp-merge-branch
+                        # Set GitHub credentials to authenticate
+                        git config --global user.email "ngogula@anergroup.com"
+                        git config --global user.name "Navateja-gogula"
+                        # Update the origin URL with the GitHub token
+                        git remote set-url origin https://$GITHUB_TOKEN@github.com/SrikarVanaparthy/GitNetlify.git
+                        git push origin temp-merge-branch
+ 
+                        PR_RESPONSE=$(curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                            -H "Accept: application/vnd.github.v3+json" \
+https://api.github.com/repos/SrikarVanaparthy/GitNetlify/pulls \
+                            -d '{
+                                "title": "Merge main into prod",
+                                "head": "temp-merge-branch",
+                                "base": "prod",
+                                "body": "Auto-generated pull request for merging main into prod."
+                            }')
+ 
+                        echo "✅ Pull request created. Please review and merge manually."
+                    '''
+                }
+            }
+        }
+ 
+        stage('Wait for PR Merge') {
+            steps {
+                script {
+                    echo "⏳ Waiting for the PR to be merged manually..."
+                    sh '''
+                        while true; do
+                            # Fetch the latest commit hashes
+                            git fetch origin
+                            # Get the latest commit hash on prod branch
+                            LATEST_COMMIT_HASH=$(git log origin/prod -1 --pretty=format:"%H")
+                            # Get the latest commit hash on temp-merge-branch
+                            MERGED_COMMIT_HASH=$(git log origin/temp-merge-branch -1 --pretty=format:"%H")
+                            # Compare the commit hashes
+                            if [ "$LATEST_COMMIT_HASH" == "$MERGED_COMMIT_HASH" ]; then
+                                echo "✅ Commit from temp-merge-branch is merged into prod!"
+                                break
+                            fi
+                            echo "⏳ Waiting for PR merge..."
+                            sleep 60
+                        done
+                    '''
+                }
+            }
+        }
+ 
+        stage('Deploy to Netlify (prod branch)') {
+            steps {
+                script {
+                    sh '''
+                        echo "🚀 Deploying to Netlify..."
                         git checkout prod
-                        git merge --no-ff --no-edit
-                        git push origin prod
-                    '''
-                }
-            }
-        }
-
-        stage('Deploy to Netlify (Prod)') {
-            when {
-                branch 'prod'
-            }
-            steps {
-                script {
-                    echo "🚀 Deploying to Netlify (Prod)..."
-                    sh '''
-                        npm install -g netlify-cli || { echo "❌ Failed to install Netlify CLI"; exit 1; }
-                        npx netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_PROD_SITE_ID || { echo "❌ Netlify deployment failed"; exit 1; }
+                        git pull origin prod
+                        npm install -g netlify-cli
+                        cd Netlify
+                        npx netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID || { echo "❌ Netlify deployment failed"; exit 1; }
+                        echo "✅ Deployment successful!"
                     '''
                 }
             }
         }
     }
-
+ 
     post {
         success {
             echo "🎉 ✅ Deployment successful!"
