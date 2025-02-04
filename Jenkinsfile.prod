@@ -1,0 +1,126 @@
+pipeline {
+    agent any
+ 
+    tools {
+        nodejs "NodeJS_18"
+    }
+ 
+    environment {
+        NETLIFY_AUTH_TOKEN = credentials('netlify_token')
+        NETLIFY_PROD_SITE_ID = '5b847326-a880-4b91-ad33-dcc3266cc5bc'  // Replace with actual Netlify production site ID
+        GITHUB_TOKEN = credentials('github_token')
+        REPO_URL = "https://github.com/SrikarVanaparthy/GitNetlify.git"
+        PROD_BRANCH = "prod"
+    }
+ 
+    stages {
+        stage('Checkout Production Code') {
+            steps {
+                script {
+                    echo "🔄 Checking out production code from GitHub..."
+                    sh '''
+                        rm -rf GitNetlify || true
+                        git clone -b $PROD_BRANCH $REPO_URL  || { echo "❌ Git clone failed"; exit 1; }
+                        echo "✅ Code checkout complete."
+                    '''
+                }
+            }
+        }
+ 
+        stage('Verify Directory Structure') {
+            steps {
+                script {
+                    sh '''
+                        echo "📁 Checking if Netlify exists..."
+                        ls -l GitNetlify || { echo "❌ Netlify repo not found!"; exit 1; }
+                        ls -l GitNetlify || { echo "❌ Netlify directory not found!"; exit 1; }
+                        echo "✅ Directory structure verified."
+                    '''
+                }
+            }
+        }
+ 
+        stage('Verify Node.js & npm') {
+            steps {
+                script {
+                    echo "🔍 Checking Node.js and npm versions..."
+                    sh '''
+                        which node || { echo "❌ Node.js not found!"; exit 1; }
+                        which npm || { echo "❌ npm not found!"; exit 1; }
+                        echo "✅ Node.js Version: $(node -v)"
+                        echo "✅ npm Version: $(npm -v)"
+                    '''
+                }
+            }
+        }
+ 
+        stage('Install Dependencies') {
+            steps {
+                script {
+                    sh '''
+                        echo "📦 Installing dependencies..."
+                        cd GitNetlify 
+                        npm install || { echo "❌ Failed to install dependencies"; exit 1; }
+                    '''
+                }
+            }
+        }
+ 
+        stage('Build Application') {
+            steps {
+                script {
+                    sh '''
+                        echo "⚙️ Building application..."
+                        cd GitNetlify 
+                        npm run build || { echo "❌ Build failed"; exit 1; }
+                        echo "✅ Build successful."
+                    '''
+                }
+            }
+        }
+ 
+        stage('Deploy to Netlify (Production)') {
+            steps {
+                script {
+                    echo "🚀 Deploying to Netlify Production..."
+                    sh '''
+                        cd GitNetlify
+ 
+                        # Install Netlify CLI
+                        npm install -g netlify-cli
+ 
+                        # Deploy to Netlify production site
+                        npx netlify deploy --auth $NETLIFY_AUTH_TOKEN --site $NETLIFY_PROD_SITE_ID --dir dist --prod --message "Production deployment" || { echo "❌ Production deployment to Netlify failed"; exit 1; }
+ 
+                        echo "✅ Production deployment successful!"
+                    '''
+                }
+            }
+        }
+ 
+        stage('Send Email Notification') {
+            steps {
+                echo "📧 Sending email notification for production deployment..."
+                mail to: 'srikarvanaparthy21@gmail.com',
+                     subject: '🚀 Production Deployment Successful',
+                     body: 'The latest changes have been successfully deployed to Netlify Production.',
+                     from: 'srikarvanaparthy@gmail.com',
+                     replyTo: 'srikarvanaparthy21@gmail.com'
+            }
+        }
+    }
+ 
+    post {
+        always {
+            echo "Cleaning up workspace..."
+            cleanWs()
+        }
+        success {
+            echo "✅ Deployment completed successfully!"
+        }
+        failure {
+            echo "❌ Deployment failed. Check logs for details."
+        }
+    }
+}
+has context menu
