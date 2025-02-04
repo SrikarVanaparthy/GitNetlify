@@ -1,0 +1,167 @@
+pipeline {
+    agent any
+ 
+    tools {
+        nodejs "NodeJS_18"  // Ensure this matches the tool name in Jenkins settings
+    }
+ 
+    environment {
+        NETLIFY_AUTH_TOKEN = credentials('netlify_token')
+        NETLIFY_SITE_ID = 'd8f2c4af-86d6-49c2-a961-9da6ef14856a'
+        GITHUB_TOKEN = credentials('github_token')
+        REPO_URL = "https://github.com/SrikarVanaparthy/GitNetlify.git"
+        MAIN_BRANCH = "dev"
+        PROD_BRANCH = "prod"
+    }
+ 
+    stages {
+        stage('Checkout Code') {
+            steps {
+                script {
+                    echo "🔄 Checking out code from GitHub..."
+                    sh '''
+                        rm -rf Netlify || true
+                        git clone -b $MAIN_BRANCH $REPO_URL Netlify || { echo "❌ Git clone failed"; exit 1; }
+                        echo "✅ Code checkout complete."
+                    '''
+                }
+            }
+        }
+ 
+        stage('Verify Directory Structure') {
+            steps {
+                script {
+                    sh '''
+                        echo "📁 Checking if Netlify exists..."
+                        ls -l Netlify || { echo "❌ Netlify repo not found!"; exit 1; }
+                        ls -l Netlify || { echo "❌ Netlify directory not found!"; exit 1; }
+                        echo "✅ Directory structure verified."
+                    '''
+                }
+            }
+        }
+ 
+        stage('Verify Node.js & npm') {
+            steps {
+                script {
+                    echo "🔍 Checking Node.js and npm versions..."
+                    sh '''
+                        echo "Using NodeJS from Jenkins tool config..."
+                        which node || { echo "❌ Node.js not found!"; exit 1; }
+                        which npm || { echo "❌ npm not found!"; exit 1; }
+                        echo "✅ Node.js Version: $(node -v)"
+                        echo "✅ npm Version: $(npm -v)"
+                    '''
+                }
+            }
+        }
+ 
+        stage('Clean & Install Dependencies') {
+            steps {
+                script {
+                    sh '''
+                        echo "🧹 Cleaning old dependencies..."
+                        cd Netlify 
+                        rm -rf node_modules package-lock.json
+                        echo "📦 Installing dependencies..."
+                        npm install || { echo "❌ Failed to install dependencies"; exit 1; }
+                    '''
+                }
+            }
+        }
+ 
+        stage('Run Tests') {
+            steps {
+                script {
+                    sh '''
+                        echo "🧪 Running test cases..."
+                        cd Netlify 
+                        npm test || { echo "❌ Tests failed"; exit 1; }
+                        echo "✅ All tests passed!"
+                    '''
+                }
+            }
+        }
+ 
+        stage('Deploy to Netlify (Test)') {
+            steps {
+                script {
+                    echo "🚀 Deploying to Netlify (Test)..."
+                    sh '''
+                        cd Netlify # Ensure you're in the correct directory for deployment
+                        git checkout main
+                        git pull origin main
+                        # Install dependencies and build the project
+                        npm install
+                        npm run build  # This generates the dist directory (or build folder depending on configuration)
+ 
+                        # Install Netlify CLI
+                        npm install -g netlify-cli
+ 
+                        # Deploy to Netlify using the correct directory
+                        npx netlify deploy --auth $NETLIFY_AUTH_TOKEN --site $NETLIFY_SITE_ID --dir dist --message "Test deployment" || { echo "❌ Test deployment to Netlify failed"; exit 1; }
+ 
+                        echo "✅ Test deployment successful!"
+                    '''
+                }
+            }
+        }
+ 
+        stage('Create Pull Request for Production Merge') {
+            steps {
+                script {
+                    echo "📌 Creating pull request for merging test into prod..."
+                    sh '''
+                        cd Netlify 
+                        git checkout prod
+                        git config --global user.email "svanaparthy@anergroup.com"
+                        git config --global user.name "SrikarVanaparthy"
+                        git remote set-url origin https://$GITHUB_TOKEN@github.com/SrikarVanaparthy/GitNetlify.git
+                        git push origin prod
+ 
+                        PR_RESPONSE=$(curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                            -H "Accept: application/vnd.github.v3+json" \
+https://api.github.com/repos/SrikarVanaparthy/GitNetlify/pulls \
+                            -d '{
+                                "title": "Merge test into prod",
+                                "head": "dev",
+                                "base": "prod",
+                                "body": "Auto-generated pull request for merging test into prod."
+                            }')
+ 
+                        echo "✅ Pull request created. Please review and merge manually."
+                    '''
+                }
+            }
+        }
+ 
+        stage('Send Email Notification') {
+            steps {
+                echo "Sending email notification for PR creation..."
+                mail to: 'srikarvanaparthy21@gmail.com',
+                     subject: 'Pull Request Created: Test to Prod',
+                     body: 'A pull request has been created to merge changes from the test branch to the prod branch.',
+                     from: 'srikarvanaparthy@gmail.com',
+                     replyTo: 'srikarvanaparthy21@gmail.com'
+            }
+        }
+    }
+ 
+    post {
+        always {
+            echo "Cleaning up..."
+            cleanWs()
+        }
+        success {
+            echo "🎉 ✅ Pull request created and deployment successful!"
+        }
+        failure {
+            echo "❌ Pipeline failed!"
+            mail to: 'srikarvanaparthy21@gmail.com',
+                     subject: 'Pull Request Created: Test to Prod',
+                     body: 'A pull request has been created to merge changes from the test branch to the prod branch.',
+                     from: 'srikarvanaparthy@gmail.com',
+                     replyTo: 'srikarvanaparthy21@gmail.com'
+        }
+    }
+}
