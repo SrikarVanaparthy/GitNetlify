@@ -81,7 +81,7 @@ pipeline {
                         git config --global user.name "SrikarVanaparthy"
                         # Update the origin URL with the GitHub token
                         git remote set-url origin https://$GITHUB_TOKEN@github.com/SrikarVanaparthy/GitNetlify.git
-                        git push origin temp-merge-branch
+                        git push origin prod
  
                         PR_RESPONSE=$(curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
                             -H "Accept: application/vnd.github.v3+json" \
