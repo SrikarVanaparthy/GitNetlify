@@ -75,7 +75,7 @@ pipeline {
                 script {
                     sh '''
                         echo "🧪 Running test cases..."
-                        cd Netlify 
+                        cd GitNetlify 
                         npm test || { echo "❌ Tests failed"; exit 1; }
                         echo "✅ All tests passed!"
                     '''
@@ -88,7 +88,7 @@ pipeline {
                 script {
                     echo "🚀 Deploying to Netlify (Test)..."
                     sh '''
-                        cd Netlify # Ensure you're in the correct directory for deployment
+                        cd GitNetlify # Ensure you're in the correct directory for deployment
                         git checkout dev
                         git pull origin dev
                         # Install dependencies and build the project
@@ -112,7 +112,7 @@ pipeline {
                 script {
                     echo "📌 Creating pull request for merging test into prod..."
                     sh '''
-                        cd Netlify 
+                        cd GitNetlify 
                         git checkout prod
                         git config --global user.email "svanaparthy@anergroup.com"
                         git config --global user.name "SrikarVanaparthy"
