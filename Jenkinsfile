@@ -72,32 +72,45 @@ pipeline {
         stage('Create Pull Request for Production Merge') {
             steps {
                 script {
-                    echo "📌 Creating pull request for merging main into prod..."
+                    echo "📌 Creating pull request for merging dev into prod..."
                     sh '''
                         cd Netlify
                         git checkout -b temp-merge-branch
+
                         # Set GitHub credentials to authenticate
                         git config --global user.email "svanaparthy@anergroup.com"
                         git config --global user.name "SrikarVanaparthy"
+
                         # Update the origin URL with the GitHub token
                         git remote set-url origin https://$GITHUB_TOKEN@github.com/SrikarVanaparthy/GitNetlify.git
                         git push origin temp-merge-branch
- 
-                        PR_RESPONSE=$(curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
+
+                        # Create Pull Request and capture response
+                        PR_RESPONSE=$(curl -s -o response.json -w "%{http_code}" -X POST \
+                            -H "Authorization: token $GITHUB_TOKEN" \
                             -H "Accept: application/vnd.github.v3+json" \
-https://api.github.com/repos/SrikarVanaparthy/GitNetlify/pulls \
+                            https://api.github.com/repos/SrikarVanaparthy/GitNetlify/pulls \
                             -d '{
                                 "title": "Merge dev into prod",
                                 "head": "dev",
                                 "base": "temp-merge-branch",
                                 "body": "Auto-generated pull request for merging dev into prod."
-                            }')
- 
-                        echo "✅ Pull request created. Please review and merge manually."
+                            }'
+                        )
+
+                        # Check the HTTP response code for success (201)
+                        if [ "$PR_RESPONSE" -eq 201 ]; then
+                            echo "✅ Pull request created successfully. Please review and merge manually."
+                        else
+                            echo "❌ Failed to create pull request."
+                            cat response.json  # Show detailed error from GitHub
+                            exit 1  # Fail the pipeline
+                        fi
                     '''
                 }
             }
         }
+
 
 
         stage('Wait for PR Merge') {
