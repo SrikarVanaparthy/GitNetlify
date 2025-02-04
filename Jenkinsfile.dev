@@ -88,7 +88,7 @@ pipeline {
                 script {
                     echo "🚀 Deploying to Netlify (Test)..."
                     sh '''
-                        cd GitNAws # Ensure you're in the correct directory for deployment
+                        cd GitAws # Ensure you're in the correct directory for deployment
                         git checkout dev
                         git pull origin dev
                         # Install dependencies and build the project
