@@ -110,7 +110,7 @@ pipeline {
             }
         }
 
-        stage('Wait for PR Merge') {
+       stage('Wait for PR Merge') {
             steps {
                 script {
                     echo "⏳ Waiting for the PR to be merged manually..."
@@ -120,22 +120,22 @@ pipeline {
                             # Fetch the latest commits from the remote repository
                             git fetch origin
 
-                            # Get the latest commit hash from the prod branch
-                            PROD_COMMIT_HASH=$(git log origin/prod -1 --pretty=format:"%H")
+                            # Get the common ancestor commit between prod and dev
+                            MERGE_BASE=$(git merge-base origin/prod origin/dev)
 
                             # Get the latest commit hash from the dev branch
-                            DEV_COMMIT_HASH=$(git log origin/dev -1 --pretty=format:"%H")
-                            
-                            # Display the latest commit hashes for debugging
-                            echo "🔍 Latest Commit on prod: $PROD_COMMIT_HASH"
-                            echo "🔍 Latest Commit on dev: $DEV_COMMIT_HASH"
-                            
-                            # Check if the latest dev commit is merged into prod
-                            if [ "$PROD_COMMIT_HASH" = "$DEV_COMMIT_HASH" ]; then
+                            DEV_COMMIT_HASH=$(git rev-parse origin/dev)
+
+                            # Display hashes for debugging
+                            echo "🔍 Common ancestor of prod and dev: $MERGE_BASE"
+                            echo "🔍 Latest commit on dev: $DEV_COMMIT_HASH"
+
+                            # Check if the latest dev commit is part of prod
+                            if [ "$MERGE_BASE" = "$DEV_COMMIT_HASH" ]; then
                                 echo "✅ The latest commit from dev is merged into prod!"
                                 break
                             fi
-                            
+
                             # If not merged yet, wait for 60 seconds and check again
                             echo "⏳ Waiting for PR merge..."
                             sleep 60
@@ -144,6 +144,7 @@ pipeline {
                 }
             }
         }
+
 
         stage('Deploy to Netlify (prod branch)') {
             steps {
