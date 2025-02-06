@@ -31,4 +31,6 @@ jobs:
         uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: http://localhost:9000
+          SONAR_HOST_URL: http://localhost:9000 # Change to your SonarQube URL
+          SONAR_PROJECT_KEY: ReactApp # Optional, specify your project key
+          SONAR_PROJECT_NAME: ReactApp # Optional, specify your project name
