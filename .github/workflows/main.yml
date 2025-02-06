@@ -1,32 +1,41 @@
-name: Build,Analyze,scan
+name: Build, Analyze, Scan
+
 on:
   push:
     branches:
       - main
+
 jobs:
   build-analyze-scan:
-    name: Build
+    name: Build and Analyze
     runs-on: [Linux]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: Build and analyze with SonarQube
-        uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_PROJECT_KEY: 'ReactApp'  # Ensure this is a unique project key in SonarQube
-          SONAR_PROJECT_NAME: 'ReactApp'  # Ensure this is the correct project name
-          
+          fetch-depth: 0  # Full clone for accurate analysis
+
       # Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: 'npm'
- 
+
       # Install dependencies
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci  # Use npm ci for faster and more reliable installs
+
+      # Build your project (optional but recommended)
+      - name: Build Project
+        run: npm run build  # If you have a build step
+
+      # SonarQube Scan
+      - name: Build and Analyze with SonarQube
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_PROJECT_KEY: 'ReactApp'  # Ensure this is a unique project key in SonarQube
+          SONAR_PROJECT_NAME: 'ReactApp'  # Ensure this is the correct project name
