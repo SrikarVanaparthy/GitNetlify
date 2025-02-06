@@ -1,36 +1,29 @@
-name: SonarQube Analysis
-
+name: Build,Analyze,scan
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-
 jobs:
-  build:
-    name: Build and Analyze
+  build-analyze-scan:
+    name: Build
     runs-on: [Linux]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: '20'   # Updated to Node.js version 20
-
-      - name: Install dependencies
-        run: |
-          npm install
-          npm run build
-
-      - name: SonarQube Scan
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Build and analyze with SonarQube
         uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_PROJECT_KEY: ReactApp # Optional, specify your project key
-          SONAR_PROJECT_NAME: ReactApp # Optional, specify your project name
+      # Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+ 
+      # Install dependencies
+      - name: Install Dependencies
+        run: npm ci
