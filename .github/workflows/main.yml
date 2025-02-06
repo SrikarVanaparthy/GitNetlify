@@ -17,6 +17,9 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_PROJECT_KEY: 'ReactApp'  # Ensure this is a unique project key in SonarQube
+          SONAR_PROJECT_NAME: 'ReactApp'  # Ensure this is the correct project name
+          
       # Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
