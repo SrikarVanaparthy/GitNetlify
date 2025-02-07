@@ -1,41 +1,94 @@
-name: Build, Analyze, Scan
-
+name: Deploy React App with SonarQube Analysis
+ 
 on:
   push:
     branches:
       - main
-
+  pull_request:
+    branches:
+      - main
+ 
 jobs:
-  build-analyze-scan:
-    name: Build and Analyze
-    runs-on: [Linux]
-
+  build:
+    runs-on: self-hosted
+    defaults:
+      run:
+        shell: bash  # Ensure Bash is used, not CMD
+        working-directory: ${{ github.workspace }}  # Set correct working directory
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Full clone for accurate analysis
-
-      # Setup Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+ 
+      - name: Set Up Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: 'npm'
-
-      # Install dependencies
-      - name: Install Dependencies
-        run: npm ci  # Use npm ci for faster and more reliable installs
-
-      # Build your project (optional but recommended)
-      - name: Build Project
-        run: npm run build  # If you have a build step
-
-      # SonarQube Scan
-      - name: Build and Analyze with SonarQube
-        uses: sonarsource/sonarqube-scan-action@master
+ 
+      - name: Clean Install Dependencies
+        run: |
+          rm -rf node_modules package-lock.json  # Ensure clean install
+          npm install
+ 
+      - name: Verify Installed Packages
+        run: npm list react-scripts || echo "react-scripts not found!"
+ 
+      - name: Build React App
+        run: npm run build
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_PROJECT_KEY: 'ReactApp'  # Ensure this is a unique project key in SonarQube
-          SONAR_PROJECT_NAME: 'ReactApp'  # Ensure this is the correct project name
+          CI: false
+ 
+  sonar_scan:
+    needs: build
+    runs-on: self-hosted
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+ 
+      - name: Install SonarQube Scanner
+        run: npm install -g sonarqube-scanner
+ 
+      - name: Run SonarQube Analysis
+        env:
+          SONAR_HOST_URL: "http://localhost:9000"
+          SONAR_LOGIN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=ReactApp \
+            -Dsonar.sources=src \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.login=$SONAR_LOGIN
+ 
+  deploy:
+    needs: sonar_scan
+    runs-on: self-hosted
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+ 
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+ 
+      - name: Install Dependencies
+        run: npm install
+ 
+      - name: Verify Installed Packages
+        run: npm list react-scripts || echo "react-scripts not found!"
+ 
+      - name: Build React App
+        run: npm run build
+        env:
+          CI: false
+ 
+      - name: Deploy to Netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: netlify deploy --dir=dist --prod
