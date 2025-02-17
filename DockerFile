@@ -6,7 +6,7 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
  
-# Install required tools
+# Install required tools for file
 
 RUN apk add --no-cache bash
  
